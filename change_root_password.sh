@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 设置版本号
-VERSION="0.16"
+VERSION="0.17"
 
 # 设置工作目录
 WORK_DIR="/root/change-root-password"
@@ -188,7 +188,29 @@ else
 fi
 
 # 重启SSH服务
-systemctl restart sshd
+restart_ssh() {
+    if systemctl is-active --quiet ssh; then
+        systemctl restart ssh
+    elif systemctl is-active --quiet sshd; then
+        systemctl restart sshd
+    else
+        echo "警告：无法自动重启 SSH 服务。请手动重启 SSH 服务以应用更改。"
+        echo "您可以尝试运行以下命令之一："
+        echo "  sudo systemctl restart ssh"
+        echo "  sudo systemctl restart sshd"
+        echo "  sudo service ssh restart"
+        echo "  sudo service sshd restart"
+        return 1
+    fi
+    return 0
+}
+
+# 调用重启函数
+if restart_ssh; then
+    echo "SSH 服务已重启。"
+else
+    echo "请在重启 SSH 服务后，使用新密码尝试登录。"
+fi
 
 echo "SSH服务已重启，请确保你已经保存了这个新的root密码:$new_password"
 echo "建议不要直接断开ssh重连，而是新开一个ssh窗口连接尝试新密码是否生效，这样更安全！"
