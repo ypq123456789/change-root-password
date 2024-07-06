@@ -1,6 +1,37 @@
 #!/bin/bash
 
-echo "版本：0.13"
+# 设置版本号
+VERSION="0.14"
+
+# 设置工作目录
+WORK_DIR="/root/change-root-password"
+
+# 检查并创建工作目录
+if [ ! -d "$WORK_DIR" ]; then
+    mkdir -p "$WORK_DIR"
+    echo "创建工作目录: $WORK_DIR"
+fi
+
+# 检查脚本是否需要更新
+SCRIPT_PATH="$WORK_DIR/change_root_password.sh"
+TEMP_SCRIPT_PATH="$WORK_DIR/temp_change_root_password.sh"
+
+# 下载最新的脚本
+curl -s https://api.github.com/repos/ypq123456789/change-root-password/contents/change_root_password.sh | jq -r .content | base64 -d > "$TEMP_SCRIPT_PATH"
+
+# 比较版本号
+NEW_VERSION=$(grep "^VERSION=" "$TEMP_SCRIPT_PATH" | cut -d'"' -f2)
+
+if [ ! -f "$SCRIPT_PATH" ] || [ "$NEW_VERSION" != "$VERSION" ]; then
+    mv "$TEMP_SCRIPT_PATH" "$SCRIPT_PATH"
+    chmod +x "$SCRIPT_PATH"
+    echo "脚本已更新到版本 $NEW_VERSION"
+    exec "$SCRIPT_PATH"
+else
+    rm "$TEMP_SCRIPT_PATH"
+fi
+
+echo "版本：$VERSION"
 echo "本脚本只适用于快速改root密码抢别人送的vps，不适宜用于自用机子，更不适用于生产环境，如果你在自用机子和生产环境上使用本脚本导致无法连接上ssh，后果自负！！！"
 
 # 检查是否为 root 用户
@@ -124,6 +155,8 @@ else
     exit 1
 fi
 
+# 重启SSH服务
+systemctl restart sshd
 
-echo "请确保你已经保存了这个新的root密码:$new_password"
-echo "建议不要直接断开ssh重连，而是新开一个ssh窗口连接尝试"
+echo "SSH服务已重启，请确保你已经保存了这个新的root密码:$new_password"
+echo "建议不要直接断开ssh重连，而是新开一个ssh窗口连接尝试新密码是否生效，这样更安全！"
