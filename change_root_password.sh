@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 设置版本号
-VERSION="0.14"
+VERSION="0.16"
 
 # 设置工作目录
 WORK_DIR="/root/change-root-password"
@@ -40,30 +40,58 @@ if [ "$(id -u)" != "0" ]; then
    exit 1
 fi
 
+# 修改 SSH 配置的函数
+modify_ssh_config() {
+    local main_config="/etc/ssh/sshd_config"
+    local include_dir="/etc/ssh/sshd_config.d"
+    local config_files=("$main_config")
+
+    # 检查是否有 include 指令
+    if grep -q "^Include $include_dir/\*.conf" "$main_config"; then
+        config_files+=("$include_dir"/*.conf)
+    fi
+
+    for file in "${config_files[@]}"; do
+        if [ -f "$file" ]; then
+            # 修改 PermitRootLogin
+            if grep -q "^#*PermitRootLogin" "$file"; then
+                sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' "$file"
+            elif [ "$file" == "$main_config" ]; then
+                echo "PermitRootLogin yes" >> "$file"
+            fi
+
+            # 修改 PasswordAuthentication
+            if grep -q "^#*PasswordAuthentication" "$file"; then
+                sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' "$file"
+            elif [ "$file" == "$main_config" ]; then
+                echo "PasswordAuthentication yes" >> "$file"
+            fi
+        fi
+    done
+
+    echo "SSH 配置已修改，现在允许使用密码进行 root SSH 登录。"
+}
+
 # 检查SSH设置并提供警告
 check_root_login() {
     echo "当前SSH root登录设置:"
     
-    # 检查主配置文件和包含的文件
-    main_config="/etc/ssh/sshd_config"
-    include_dir="/etc/ssh/sshd_config.d"
+    local main_config="/etc/ssh/sshd_config"
+    local include_dir="/etc/ssh/sshd_config.d"
+    local config_files=("$main_config")
     
-    # 获取所有相关的配置文件
-    config_files=("$main_config")
     if grep -q "^Include $include_dir/\*.conf" "$main_config"; then
         config_files+=("$include_dir"/*.conf)
     fi
     
-    # 从所有配置文件中提取相关设置
     for file in "${config_files[@]}"; do
         if [ -f "$file" ]; then
             grep -H -E "^#?PermitRootLogin|^#?PasswordAuthentication" "$file"
         fi
     done
 
-    # 获取最终有效的设置（考虑覆盖）
-    permitRootLogin=$(grep -h "^#*PermitRootLogin" "${config_files[@]}" 2>/dev/null | tail -n1)
-    passwordAuthentication=$(grep -h "^#*PasswordAuthentication" "${config_files[@]}" 2>/dev/null | tail -n1)
+    local permitRootLogin=$(grep -h "^#*PermitRootLogin" "${config_files[@]}" 2>/dev/null | tail -n1)
+    local passwordAuthentication=$(grep -h "^#*PasswordAuthentication" "${config_files[@]}" 2>/dev/null | tail -n1)
 
     echo "解释："
     if [[ $permitRootLogin == \#* ]]; then
@@ -89,16 +117,20 @@ check_root_login() {
         esac
     fi
 
-    echo "总结："
+   echo "总结："
     if [[ $permitRootLogin != \#* && "${permitRootLogin#PermitRootLogin }" == "yes" ]] && 
        [[ $passwordAuthentication == \#* || "${passwordAuthentication#PasswordAuthentication }" != "no" ]]; then
         echo "当前设置可能允许使用密码进行root SSH登录。"
+        return 0
     else
         echo "警告：当前设置可能不允许使用密码进行root SSH登录。"
         echo "修改root密码可能对SSH登录没有实际影响。"
-        echo "如果你确定要继续，请输入'yes'，否则脚本将退出。"
-        read -r response
-        if [[ ! $response =~ ^[Yy][Ee][Ss]$ ]]; then
+        echo "按 Enter 键修改 SSH 配置以允许密码登录，或按任意其他键退出脚本。"
+        read -n 1 -s -r key
+        if [ -z "$key" ]; then
+            modify_ssh_config
+            return 0
+        else
             echo "脚本已退出。"
             exit 0
         fi
