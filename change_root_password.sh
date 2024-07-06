@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "版本：0.1"
+
 # 检查是否为 root 用户
 if [ "$(id -u)" != "0" ]; then
    echo "脚本必须以root用户运行" 1>&2
@@ -16,7 +18,7 @@ if [ $# -eq 1 ]; then
     new_password="\$1"
 else
     new_password=$(generate_password)
-    echo 生成了新的root密码: $new_password"
+    echo "生成了新的root密码: $new_password"
 fi
 
 # 更改 root 密码
