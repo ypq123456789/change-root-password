@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "版本：0.5"
+echo "版本：0.6"
 
 # 检查是否为 root 用户
 if [ "$(id -u)" != "0" ]; then
@@ -34,7 +34,16 @@ generate_password() {
 echo "按 Enter 键生成随机密码，或按任意其他键自定义密码。"
 read -n 1 -s -r key
 
-if [ "$key" = "" ]; then
+# 替换原来的 read 命令
+if [ -t 0 ]; then
+    # 终端是交互式的
+    read -n 1 -s -r -t 60 key
+else
+    # 非交互式环境，等待一段时间给用户机会输入
+    read -n 1 -s -r -t 10 key
+fi
+
+if [ -z "$key" ]; then
     # 生成随机密码
     new_password=$(generate_password)
     echo "生成了新的root密码: $new_password"
@@ -50,6 +59,7 @@ else
         exit 1
     fi
 fi
+
 
 # 更改 root 密码
 echo "root:$new_password" | chpasswd
