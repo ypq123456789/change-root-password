@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "版本：0.2"
+echo "版本：0.5"
 
 # 检查是否为 root 用户
 if [ "$(id -u)" != "0" ]; then
@@ -30,12 +30,25 @@ generate_password() {
     tr -dc A-Za-z0-9_\!\@\#\$\%\^\&\*\(\)-+= < /dev/urandom | head -c 16
 }
 
-# 如果提供了参数，使用它作为新密码；否则生成随机密码
-if [ $# -eq 1 ]; then
-    new_password="\$1"
-else
+# 提示用户选择
+echo "按 Enter 键生成随机密码，或按任意其他键自定义密码。"
+read -n 1 -s -r key
+
+if [ "$key" = "" ]; then
+    # 生成随机密码
     new_password=$(generate_password)
     echo "生成了新的root密码: $new_password"
+else
+    # 使用自定义密码
+    echo -e "\n请输入新的root密码："
+    read -s new_password
+    echo "请再次输入新的root密码："
+    read -s new_password_confirm
+    
+    if [ "$new_password" != "$new_password_confirm" ]; then
+        echo "两次输入的密码不匹配，请重新运行脚本。"
+        exit 1
+    fi
 fi
 
 # 更改 root 密码
@@ -43,16 +56,17 @@ echo "root:$new_password" | chpasswd
 
 # 检查密码是否成功更改
 if [ $? -eq 0 ]; then
-    echo "root密码已经被成功更改"
+    echo "root密码已经被成功更改为: $new_password"
 else
     echo "更改root密码失败，请重试"
     exit 1
 fi
 
-# 如果使用随机生成的密码，再次显示密码
-if [ $# -eq 0 ]; then
-    echo "请确保你已经保存了这个新的root密码: $new_password"
-fi
-
 echo "注意：如果系统配置为禁止root密码登录，这个更改可能不会影响SSH登录。"
 echo "请检查 /etc/ssh/sshd_config 文件以确认当前的SSH登录设置。"
+
+# 显示当前SSH root登录设置
+echo "当前SSH root登录设置:"
+grep -E "^PermitRootLogin|^PasswordAuthentication" /etc/ssh/sshd_config
+
+echo "请确保你已经保存了这个新的root密码: $new_password"
