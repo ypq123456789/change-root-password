@@ -1,6 +1,7 @@
 #!/bin/bash
 
-echo "版本：0.6"
+echo "版本：0.7"
+echo "本脚本只适用于快速改root密码抢别人送的vps，不适宜用于自用机子，更不适用于生产环境，如果你在自用机子和生产环境上使用本脚本导致无法连接上ssh，后果自负！！！"
 
 # 检查是否为 root 用户
 if [ "$(id -u)" != "0" ]; then
@@ -79,4 +80,5 @@ echo "请检查 /etc/ssh/sshd_config 文件以确认当前的SSH登录设置。"
 echo "当前SSH root登录设置:"
 grep -E "^PermitRootLogin|^PasswordAuthentication" /etc/ssh/sshd_config
 
-echo "请确保你已经保存了这个新的root密码: $new_password"
+echo "请确保你已经保存了这个新的root密码:$new_password"
+echo "建议不要直接断开ssh重连，而是新开一个ssh窗口连接尝试"
