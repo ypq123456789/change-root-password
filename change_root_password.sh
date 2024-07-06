@@ -12,16 +12,33 @@ fi
 # 检查SSH设置并提供警告
 check_root_login() {
     echo "当前SSH root登录设置:"
-    grep -E "^#?PermitRootLogin|^#?PasswordAuthentication" /etc/ssh/sshd_config
+    
+    # 检查主配置文件和包含的文件
+    main_config="/etc/ssh/sshd_config"
+    include_dir="/etc/ssh/sshd_config.d"
+    
+    # 获取所有相关的配置文件
+    config_files=("$main_config")
+    if grep -q "^Include $include_dir/\*.conf" "$main_config"; then
+        config_files+=("$include_dir"/*.conf)
+    fi
+    
+    # 从所有配置文件中提取相关设置
+    for file in "${config_files[@]}"; do
+        if [ -f "$file" ]; then
+            grep -H -E "^#?PermitRootLogin|^#?PasswordAuthentication" "$file"
+        fi
+    done
 
-    permitRootLogin=$(grep "^#*PermitRootLogin" /etc/ssh/sshd_config | tail -n1)
-    passwordAuthentication=$(grep "^#*PasswordAuthentication" /etc/ssh/sshd_config | tail -n1)
+    # 获取最终有效的设置（考虑覆盖）
+    permitRootLogin=$(grep -h "^#*PermitRootLogin" "${config_files[@]}" 2>/dev/null | tail -n1)
+    passwordAuthentication=$(grep -h "^#*PasswordAuthentication" "${config_files[@]}" 2>/dev/null | tail -n1)
 
     echo "解释："
     if [[ $permitRootLogin == \#* ]]; then
-        echo "- PermitRootLogin: 被注释，使用默认值 (通常为 prohibit-password)"
+        echo "- PermitRootLogin: 被注释或未设置，使用默认值 (通常为 prohibit-password)"
     else
-        case "$(echo $permitRootLogin | cut -d ' ' -f2)" in
+        case "$(echo $permitRootLogin | awk '{print \$2}')" in
             "yes") echo "- PermitRootLogin yes: 允许root用户通过SSH登录" ;;
             "prohibit-password") echo "- PermitRootLogin prohibit-password: 禁止root用户使用密码登录SSH，但允许使用其他方式（如密钥）" ;;
             "no") echo "- PermitRootLogin no: 完全禁止root用户通过SSH登录" ;;
@@ -30,9 +47,9 @@ check_root_login() {
     fi
 
     if [[ $passwordAuthentication == \#* ]]; then
-        echo "- PasswordAuthentication: 被注释，使用默认值 (通常为 yes)"
+        echo "- PasswordAuthentication: 被注释或未设置，使用默认值 (通常为 yes)"
     else
-        case "$(echo $passwordAuthentication | cut -d ' ' -f2)" in
+        case "$(echo $passwordAuthentication | awk '{print \$2}')" in
             "yes") echo "- PasswordAuthentication yes: 允许使用密码进行SSH认证" ;;
             "no") echo "- PasswordAuthentication no: 禁止使用密码进行SSH认证，只能使用密钥等其他方式" ;;
             *) echo "- PasswordAuthentication: 未找到有效设置，使用默认值 (通常为 yes)" ;;
@@ -40,8 +57,8 @@ check_root_login() {
     fi
 
     echo "总结："
-    if [[ $permitRootLogin != \#* && $(echo $permitRootLogin | cut -d ' ' -f2) == "yes" ]] && 
-       [[ $passwordAuthentication == \#* || $(echo $passwordAuthentication | cut -d ' ' -f2) != "no" ]]; then
+    if [[ $permitRootLogin != \#* && $(echo $permitRootLogin | awk '{print \$2}') == "yes" ]] && 
+       [[ $passwordAuthentication == \#* || $(echo $passwordAuthentication | awk '{print \$2}') != "no" ]]; then
         echo "当前设置可能允许使用密码进行root SSH登录。"
     else
         echo "警告：当前设置可能不允许使用密码进行root SSH登录。"
@@ -57,6 +74,7 @@ check_root_login() {
 
 # 执行检查
 check_root_login
+
 
 # 生成随机密码的函数
 generate_password() {
