@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "版本：0.11"
+echo "版本：0.12"
 echo "本脚本只适用于快速改root密码抢别人送的vps，不适宜用于自用机子，更不适用于生产环境，如果你在自用机子和生产环境上使用本脚本导致无法连接上ssh，后果自负！！！"
 
 # 检查是否为 root 用户
@@ -58,4 +58,53 @@ check_root_login() {
 # 执行检查
 check_root_login
 
-# 脚本的其余部分保持不变...
+# 生成随机密码的函数
+generate_password() {
+    tr -dc A-Za-z0-9_\!\@\#\$\%\^\&\*\(\)-+= < /dev/urandom | head -c 16
+}
+
+# 提示用户选择
+echo "按 Enter 键生成随机密码，或按任意其他键自定义密码。"
+read -n 1 -s -r key
+
+# 替换原来的 read 命令
+if [ -t 0 ]; then
+    # 终端是交互式的
+    read -n 1 -s -r -t 60 key
+else
+    # 非交互式环境，等待一段时间给用户机会输入
+    read -n 1 -s -r -t 10 key
+fi
+
+if [ -z "$key" ]; then
+    # 生成随机密码
+    new_password=$(generate_password)
+    echo "生成了新的root密码:$new_password"
+else
+    # 使用自定义密码
+    echo -e "\n请输入新的root密码：（输入不显示内容是正常的）"
+    read -s new_password
+    echo "请再次输入新的root密码：（输入不显示内容是正常的）"
+    read -s new_password_confirm
+    
+    if [ "$new_password" != "$new_password_confirm" ]; then
+        echo "两次输入的密码不匹配，请重新运行脚本。"
+        exit 1
+    fi
+fi
+
+
+# 更改 root 密码
+echo "root:$new_password" | chpasswd
+
+# 检查密码是否成功更改
+if [ $? -eq 0 ]; then
+    echo "root密码已经被成功更改为:$new_password"
+else
+    echo "更改root密码失败，请重试"
+    exit 1
+fi
+
+
+echo "请确保你已经保存了这个新的root密码:$new_password"
+echo "建议不要直接断开ssh重连，而是新开一个ssh窗口连接尝试"
