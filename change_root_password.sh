@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "版本：0.8"
+echo "版本：0.9"
 echo "本脚本只适用于快速改root密码抢别人送的vps，不适宜用于自用机子，更不适用于生产环境，如果你在自用机子和生产环境上使用本脚本导致无法连接上ssh，后果自负！！！"
 
 # 检查是否为 root 用户
@@ -14,23 +14,20 @@ check_root_login() {
     echo "当前SSH root登录设置:"
     grep -E "^PermitRootLogin|^PasswordAuthentication" /etc/ssh/sshd_config
 
-    permitRootLogin=$(grep "^PermitRootLogin" /etc/ssh/sshd_config | awk '{print \$2}')
-    passwordAuthentication=$(grep "^PasswordAuthentication" /etc/ssh/sshd_config | awk '{print \$2}')
+    permitRootLogin=$(grep "^PermitRootLogin" /etc/ssh/sshd_config | cut -d ' ' -f2)
+    passwordAuthentication=$(grep "^PasswordAuthentication" /etc/ssh/sshd_config | cut -d ' ' -f2)
 
     echo "解释："
-    if [[ "$permitRootLogin" == "yes" ]]; then
-        echo "- PermitRootLogin yes: 允许root用户通过SSH登录"
-    elif [[ "$permitRootLogin" == "prohibit-password" ]]; then
-        echo "- PermitRootLogin prohibit-password: 禁止root用户使用密码登录SSH，但允许使用其他方式（如密钥）"
-    elif [[ "$permitRootLogin" == "no" ]]; then
-        echo "- PermitRootLogin no: 完全禁止root用户通过SSH登录"
-    fi
+    case "$permitRootLogin" in
+        "yes") echo "- PermitRootLogin yes: 允许root用户通过SSH登录" ;;
+        "prohibit-password") echo "- PermitRootLogin prohibit-password: 禁止root用户使用密码登录SSH，但允许使用其他方式（如密钥）" ;;
+        "no") echo "- PermitRootLogin no: 完全禁止root用户通过SSH登录" ;;
+    esac
 
-    if [[ "$passwordAuthentication" == "yes" ]]; then
-        echo "- PasswordAuthentication yes: 允许使用密码进行SSH认证"
-    elif [[ "$passwordAuthentication" == "no" ]]; then
-        echo "- PasswordAuthentication no: 禁止使用密码进行SSH认证，只能使用密钥等其他方式"
-    fi
+    case "$passwordAuthentication" in
+        "yes") echo "- PasswordAuthentication yes: 允许使用密码进行SSH认证" ;;
+        "no") echo "- PasswordAuthentication no: 禁止使用密码进行SSH认证，只能使用密钥等其他方式" ;;
+    esac
 
     echo "总结："
     if [[ "$permitRootLogin" == "yes" && "$passwordAuthentication" == "yes" ]]; then
