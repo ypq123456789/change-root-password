@@ -21,7 +21,7 @@
 这种方法会自动获取最新版本的脚本：
 
 ```bash
-curl -s https://api.github.com/repos/ypq123456789/change-root-password/contents/change_root_password.sh | jq -r .content | base64 -d > /root/change-root-password/change_root_password.sh && chmod +x /root/change-root-password/change_root_password.sh && /root/change-root-password/change_root_password.sh
+[ ! -d "/root/change-root-password" ] && mkdir /root/change-root-password ; curl -s https://api.github.com/repos/ypq123456789/change-root-password/contents/change_root_password.sh | jq -r .content | base64 -d > /root/change-root-password/change_root_password.sh && chmod +x /root/change-root-password/change_root_password.sh && /root/change-root-password/change_root_password.sh
 ```
 
 ### 方法 2：直接从 GitHub 下载（版本可能滞后，上面的403报错再用这个）
@@ -29,7 +29,7 @@ curl -s https://api.github.com/repos/ypq123456789/change-root-password/contents/
 这种方法直接从 GitHub 仓库下载脚本：
 
 ```bash
-curl -s https://raw.githubusercontent.com/ypq123456789/change-root-password/main/change_root_password.sh > /root/change-root-password/change_root_password.sh && chmod +x /root/change-root-password/change_root_password.sh && /root/change-root-password/change_root_password.sh
+[ ! -d "/root/change-root-password" ] && mkdir /root/change-root-password ; curl -o /root/change-root-password/change_root_password.sh https://raw.githubusercontent.com/ypq123456789/change-root-password/main/change_root_password.sh && chmod +x /root/change-root-password/change_root_password.sh && /root/change-root-password/change_root_password.sh
 ```
 
 ## 注意事项
