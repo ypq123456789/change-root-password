@@ -38,6 +38,9 @@ curl -s https://raw.githubusercontent.com/ypq123456789/change-root-password/main
 2. 使用此脚本可能会更改您的 SSH 配置，请确保您了解这些更改的影响。
 3. 在更改密码后，建议在新的 SSH 会话中测试新密码，而不是直接断开当前连接。
 4. 此脚本不适用于生产环境或重要的个人服务器。
+   
+## 操作示意
+![image](https://github.com/ypq123456789/change-root-password/assets/114487221/a70741a1-1ef4-4ea0-8520-037a786d54df)
 
 ## 贡献
 
